@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
-import 'package:flame/input.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
-class RunnerGame extends FlameGame with TapDetector {
+class RunnerGame extends FlameGame with TapCallbacks {
   late SpriteAnimationComponent playerRunner;
   late ParallaxComponent gameBg;
+  // late ParallaxComponent gameBg2;
   late double screenWidth = size.x; // Flame game width
   late double screenHeight = size.y; // Flame game height
 
@@ -27,10 +27,13 @@ class RunnerGame extends FlameGame with TapDetector {
         textureSize: Vector2(108, 285),
       ),
     );
+    final runnerScale = screenWidth * 0.0007;
+    // playerRunner.size = Vector2(108, 285) * runnerScale;
+
     playerRunner = SpriteAnimationComponent()
       ..animation = animation
-      ..size = Vector2(108, 285) * 0.7
-      ..position = Vector2(screenWidth * 0.1, screenHeight * 0.5);
+      ..size = Vector2(108, 285) * runnerScale
+      ..position = Vector2(screenWidth * 0.1, screenHeight * 0.6);
 
     // playerRunner.position = Vector2(screenWidth * 0.1, screenHeight * 0.5);
 
@@ -43,34 +46,59 @@ class RunnerGame extends FlameGame with TapDetector {
       baseVelocity: Vector2(100, 0),
       velocityMultiplierDelta: Vector2(1.5, 0),
     );
+    // gameBg2 = await loadParallaxComponent(
+    //   [
+    //     // ParallaxImageData('game_bg_cartoon.jpg'),
+    //     ParallaxImageData('tree_bg.png'),
+    //   ],
+    //   fill: LayerFill.none,
+    //   baseVelocity: Vector2(150, 0),
+    //   velocityMultiplierDelta: Vector2(1.5, 0),
+    //   position: Vector2(screenWidth * 0.1, screenHeight * 0.5),
+    // );
+
+    // final scaleFactor = size.x / 1000;
+    // gameBg2.scale = Vector2(scaleFactor, scaleFactor);
 
     // print(size);
 
     add(gameBg);
+    // add(gameBg2);
     add(playerRunner);
   }
 
+  bool isJumping = false; // jump flag
+
   @override
-  void onTapDown(TapDownInfo info) {
+  void onTapDown(TapDownEvent event) {
+    if (isJumping) return; // block double tap
+
+    isJumping = true;
+    doJump();
+  }
+
+  void doJump() {
     final jumpHeight = 150.0;
 
-    // Prevent overlapping jumps
-    // if (playerRunner.effecte.isNotEmpty) return;
-
-    // Smooth jump up
-    playerRunner.add(
-      MoveByEffect(
-        Vector2(0, -jumpHeight),
-        EffectController(duration: 0.8, curve: Curves.easeOut),
-      ),
+    // Jump Up
+    final jumpUp = MoveByEffect(
+      Vector2(0, -jumpHeight),
+      EffectController(duration: 0.4, curve: Curves.easeOut),
     );
 
-    // Smooth fall down after up
-    playerRunner.add(
-      MoveByEffect(
-        Vector2(0, jumpHeight),
-        EffectController(duration: 0.8, startDelay: 0.2, curve: Curves.easeIn),
-      ),
+    // Jump Down
+    final jumpDown = MoveByEffect(
+      Vector2(0, jumpHeight),
+      EffectController(duration: 0.4, startDelay: 0.4, curve: Curves.easeIn),
     );
+
+    // Jump finished callback
+    jumpDown.onComplete = () {
+      isJumping = false;
+    };
+
+    // Add effects to player
+    playerRunner.add(jumpUp);
+    playerRunner.add(jumpDown);
   }
 }
